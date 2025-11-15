@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Game - Rock Paper Scissors{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <!-- Hidden inputs for JavaScript to access -->
+    <input type="hidden" id="game-id" value="{{ game.id }}">
+    <input type="hidden" id="current-user-id" value="{{ current_user.id }}">
+    <input type="hidden" id="current-username" value="{{ current_user.username }}">
+
+    <div class="game-header">
+        <h1>Rock Paper Scissors</h1>
+        <div id="status-message" class="status-message">
+            Waiting for opponent...
+        </div>
+    </div>
+
+    <div id="player-info" class="player-info">
+        <div class="player-card">
+            <div class="player-name">You: {{ current_user.username }}</div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="player-card">
+            <div class="player-name">
+                Opponent:
+                {% set opponent = game.player2 if current_user.id == game.player1_id else game.player1 %}
+                {% if opponent %}
+                    {{ opponent.username }}
+                {% else %}
+                    Waiting...
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="game-board">
+        <div class="choice-display-area">
+            <div class="choice-section">
+                <h3>Your Choice</h3>
+                <div id="my-choice" class="choice-placeholder">
+                    <span class="waiting-text">Make your choice below</span>
+                </div>
+            </div>
+
+            <div class="choice-section">
+                <h3>Opponent's Choice</h3>
+                <div id="opponent-choice" class="choice-placeholder">
+                    <span class="waiting-text">Waiting...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="choices-container">
+            <button class="choice-btn" data-choice="rock">
+                <div class="choice-icon">✊</div>
+                <div class="choice-name">Rock</div>
+            </button>
+            <button class="choice-btn" data-choice="paper">
+                <div class="choice-icon">✋</div>
+                <div class="choice-name">Paper</div>
+            </button>
+            <button class="choice-btn" data-choice="scissors">
+                <div class="choice-icon">✌️</div>
+                <div class="choice-name">Scissors</div>
+            </button>
+        </div>
+
+        <div id="result" class="result-container">
+            <!-- Result will be displayed here -->
+        </div>
+
+        <div class="game-actions">
+            <button id="play-again-btn" class="btn btn-primary" style="display: none;">
+                Play Again
+            </button>
+            <a href="{{ url_for('game.lobby') }}" class="btn btn-secondary">
+                Back to Lobby
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/game.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard - Rock Paper Scissors{% endblock %}
+
+{% block content %}
+<div class="leaderboard-container">
+    <div class="leaderboard-header">
+        <h1>🏆 Leaderboard</h1>
+        <p>Top players ranked by ELO rating</p>
+    </div>
+
+    <div class="search-section">
+        <form method="GET" action="{{ url_for('game.leaderboard') }}" class="search-form">
+            <input 
+                type="text" 
+                name="search" 
+                placeholder="Search player by username..." 
+                value="{{ search_query or '' }}"
+                class="search-input">
+            <button type="submit" class="btn btn-primary">Search</button>
+            {% if search_query %}
+                <a href="{{ url_for('game.leaderboard') }}" class="btn btn-secondary">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="leaderboard-content">
+        {% if players %}
+            <div class="leaderboard-table">
+                <div class="table-header">
+                    <div class="col-rank">Rank</div>
+                    <div class="col-player">Player</div>
+                    <div class="col-elo">ELO Rating</div>
+                    <div class="col-played">Games</div>
+                    <div class="col-record">W / L / T</div>
+                    <div class="col-winrate">Win Rate</div>
+                </div>
+
+                {% for player in players %}
+                    <div class="table-row {% if player.id == current_user.id %}current-user{% endif %}">
+                        <div class="col-rank">
+                            {% if loop.index == 1 %}
+                                🥇
+                            {% elif loop.index == 2 %}
+                                🥈
+                            {% elif loop.index == 3 %}
+                                🥉
+                            {% else %}
+                                {{ loop.index }}
+                            {% endif %}
+                        </div>
+                        <div class="col-player">
+                            <span class="player-name">
+                                {{ player.username }}
+                                {% if player.id == current_user.id %}
+                                    <span class="you-badge">(You)</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-elo">
+                            <span class="elo-badge">{{ player.elo_rating }}</span>
+                        </div>
+                        <div class="col-played">{{ player.games_played }}</div>
+                        <div class="col-record">
+                            <span class="wins">{{ player.games_won }}</span> / 
+                            <span class="losses">{{ player.games_lost }}</span> / 
+                            <span class="ties">{{ player.games_tied }}</span>
+                        </div>
+                        <div class="col-winrate">
+                            <div class="winrate-bar">
+                                <div class="winrate-fill" style="width: {{ player.win_rate }}%"></div>
+                            </div>
+                            <span class="winrate-text">{{ player.win_rate }}%</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                {% if search_query %}
+                    <p>No players found matching "{{ search_query }}"</p>
+                {% else %}
+                    <p>No players on the leaderboard yet. Play some games to get ranked!</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="leaderboard-info">
+        <h3>About ELO Ratings</h3>
+        <p>
+            The ELO rating system measures player skill level. All players start at 1200 ELO.
+            When you win against a higher-rated player, you gain more points. When you lose to
+            a lower-rated player, you lose more points. Ties result in smaller rating changes.
+        </p>
+    </div>
+</div>
+{% endblock %}

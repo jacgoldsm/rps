@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Lobby - Rock Paper Scissors{% endblock %}
+
+{% block content %}
+<div class="lobby-container">
+    <div class="lobby-header">
+        <h1>Game Lobby</h1>
+        <p>Click Play to find a match!</p>
+    </div>
+
+    <div class="lobby-actions">
+        <button id="join-random-game-btn" class="btn btn-primary btn-large">
+            🎮 Play Game
+        </button>
+    </div>
+
+    <div class="lobby-content">
+        <div class="lobby-section">
+            <h2>Online Players</h2>
+            <div class="players-list">
+                {% if users %}
+                    {% for user in users %}
+                        {% if user.id != current_user.id %}
+                            <div class="player-item">
+                                <span class="player-avatar">👤</span>
+                                <span class="player-name">{{ user.username }}</span>
+                                <span class="player-status">●</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <p>No other players online</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/game.js') }}"></script>
+{% endblock %}
