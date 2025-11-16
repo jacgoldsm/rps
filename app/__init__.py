@@ -20,7 +20,9 @@ login_manager = LoginManager()
 
 def create_app():
     """Application factory pattern"""
-    app = Flask(__name__)
+    app = Flask(__name__,
+                static_folder='static',
+                static_url_path='/static')
     app.config.from_object('config.Config')
     
     # Import db here to avoid circular imports
