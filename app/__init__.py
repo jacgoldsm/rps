@@ -41,10 +41,16 @@ def create_app():
     
     # Import socket handlers
     from app import socket_handlers
-    
-    with app.app_context():
-        db.create_all()
-    
+
+    # Only create tables automatically in local development
+    # On Vercel/production, use init_db.py script instead
+    if not os.environ.get('VERCEL_ENV'):
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception as e:
+                app.logger.warning(f"Could not create database tables: {e}")
+
     return app
 
 

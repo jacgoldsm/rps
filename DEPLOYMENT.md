@@ -79,29 +79,57 @@ vercel --prod
 
 ## Step 5: Initialize Database Tables
 
-After your first deployment, you need to create the database tables:
+After your first deployment, you need to create the database tables. The app will **not** auto-create tables on Vercel (to avoid file system issues).
 
-### Option A: Run init script locally
+### Recommended Method: Run init script locally with Vercel's database URL
+
+1. Get your database connection string from Vercel:
+   - Go to Vercel Dashboard → Your Project → Storage
+   - Click on your Postgres database
+   - Copy the `POSTGRES_URL` connection string
+
+2. Run the initialization script locally:
 
 ```bash
-# Set your production database URL
-export DATABASE_URL="your-vercel-postgres-url"
+# On Mac/Linux
+export DATABASE_URL="your-postgres-url-from-vercel"
+python init_db.py
 
-# Run the initialization script
+# On Windows (Command Prompt)
+set DATABASE_URL=your-postgres-url-from-vercel
+python init_db.py
+
+# On Windows (PowerShell)
+$env:DATABASE_URL="your-postgres-url-from-vercel"
 python init_db.py
 ```
 
-### Option B: Use Vercel CLI to run the script
+The script will connect to your Vercel Postgres database and create all necessary tables.
+
+### Alternative: Use Vercel CLI
 
 ```bash
-# This will run the script on Vercel's infrastructure
+# Pull environment variables from Vercel
 vercel env pull .env.production
+
+# Load and run
 python init_db.py
 ```
 
-### Option C: Trigger it via a one-time API call
+### Verify Database Setup
 
-You could also add a one-time initialization endpoint, but make sure to secure it!
+After running init_db.py, you should see output like:
+```
+=== Database Initialization ===
+Database URL: postgres://...
+
+Creating database tables...
+Database tables created successfully!
+
+Tables created: user, game
+
+=== Initialization Complete ===
+```
 
 ## Step 6: Verify Deployment
 
@@ -151,12 +179,34 @@ Once connected to Git, Vercel will automatically deploy:
 
 ## Troubleshooting
 
+### AttributeError: 'SocketIO' object has no attribute 'WSGIApp'
+
+**Fixed!** This error occurred in earlier versions. Make sure your `api/index.py` exports the app directly:
+```python
+from app import create_app
+app = create_app()
+```
+
+Don't use `socketio.WSGIApp()` - Flask-SocketIO doesn't have this attribute.
+
+### OSError: [Errno 30] Read-only file system: '/var/task/instance'
+
+**Fixed!** This error occurred because:
+1. Vercel's serverless functions have read-only filesystems
+2. The app was trying to create SQLite database directories
+
+The fix:
+- `app/__init__.py` now skips `db.create_all()` when `VERCEL_ENV` is set
+- You must manually run `init_db.py` to create tables in Postgres
+- Local development still auto-creates SQLite databases
+
 ### Database Connection Errors
 
 If you see database connection errors:
 1. Check that `POSTGRES_URL` or `DATABASE_URL` is set in Vercel environment variables
 2. Verify the database is in the same region as your deployment
 3. Check that tables are initialized (run `init_db.py`)
+4. Try connecting to the database locally with the URL to verify it works
 
 ### Import Errors
 
@@ -164,6 +214,7 @@ If you see module import errors:
 1. Make sure all dependencies are in `requirements.txt`
 2. Check that `vercel.json` is configured correctly
 3. Verify that `api/index.py` exists
+4. Check that all files are committed to git (Vercel deploys from git)
 
 ### Socket.IO Not Working
 
