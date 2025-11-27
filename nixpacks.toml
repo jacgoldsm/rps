@@ -1,6 +1,6 @@
 [phases.setup]
 nixPkgs = ["python39", "postgresql"]
-provider = [..., "python3"]
+provider = ["...", "python3"]
 
 [phases.install]
 cmds = ["python3 -m pip install -r requirements.txt"]
