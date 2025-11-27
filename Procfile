@@ -1,1 +1,1 @@
-web: python init_db.py && gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT "run:app"
+web: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT "run:app"
