@@ -3,17 +3,13 @@ from flask_login import LoginManager
 from flask_socketio import SocketIO
 import os
 
-# Configure SocketIO with options suitable for Vercel deployment
+# Configure SocketIO with options suitable for Railway deployment
 socketio_options = {
     'cors_allowed_origins': '*',
-    'async_mode': 'threading',
+    'async_mode': 'eventlet',
     'logger': False,
     'engineio_logger': False,
 }
-
-# On Vercel, WebSocket transport may not work, so we allow polling
-if os.environ.get('VERCEL_ENV'):
-    socketio_options['transports'] = ['polling', 'websocket']
 
 socketio = SocketIO(**socketio_options)
 login_manager = LoginManager()
@@ -45,8 +41,8 @@ def create_app():
     from app import socket_handlers
 
     # Only create tables automatically in local development
-    # On Vercel/production, use init_db.py script instead
-    if not os.environ.get('VERCEL_ENV'):
+    # On Railway/production, use init_db.py script instead
+    if not os.environ.get('RAILWAY_ENVIRONMENT'):
         with app.app_context():
             try:
                 db.create_all()

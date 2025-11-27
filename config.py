@@ -19,6 +19,6 @@ class Config:
     }
 
     # Production settings
-    if os.environ.get('VERCEL_ENV') == 'production':
+    if os.environ.get('RAILWAY_ENVIRONMENT') == 'production':
         SESSION_COOKIE_SECURE = True
         SESSION_COOKIE_SAMESITE = 'Lax'
