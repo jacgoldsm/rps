@@ -1,12 +1,2 @@
-[phases.setup]
-nixPkgs = ["python39", "postgresql"]
-provider = ["...", "python3"]
-
-[phases.install]
-cmds = ["python3 -m pip install -r requirements.txt"]
-
-[phases.build]
-cmds = ["python init_db.py"]
-
 [start]
-cmd = "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT run:app"
+cmd = "python init_db.py && gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT run:app"
