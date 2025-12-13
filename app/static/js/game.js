@@ -58,7 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lobby "Play Game" button (if on lobby page)
     const joinRandomGameBtn = document.getElementById('join-random-game-btn');
     if (joinRandomGameBtn) {
-        joinRandomGameBtn.addEventListener('click', joinRandomGame);
+        console.log('Found join-random-game-btn, attaching event listener');
+        joinRandomGameBtn.addEventListener('click', (e) => {
+            console.log('Play Game button clicked!');
+            e.preventDefault();
+            joinRandomGame();
+        });
+    } else {
+        console.log('join-random-game-btn not found on this page');
     }
 });
 
@@ -570,10 +577,12 @@ function capitalizeFirst(str) {
 
 // Join random game (matchmaking)
 async function joinRandomGame() {
+    console.log('joinRandomGame function called');
     try {
         // Show loading notification
         showNotification('Finding a match...', 'info');
 
+        console.log('Sending POST request to /join-random-game');
         const response = await fetch('/join-random-game', {
             method: 'POST',
             headers: {
@@ -581,15 +590,19 @@ async function joinRandomGame() {
             }
         });
 
+        console.log('Response received:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
 
         if (data.game_id) {
             if (data.status === 'matched') {
                 showNotification(data.message, 'success');
             }
             // Redirect to the game room
+            console.log('Redirecting to game:', data.game_id);
             window.location.href = `/game/${data.game_id}`;
         } else {
+            console.error('No game_id in response:', data);
             showNotification('Failed to join game', 'error');
         }
     } catch (error) {

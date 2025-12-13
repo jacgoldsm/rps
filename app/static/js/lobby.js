@@ -84,7 +84,8 @@ function removePlayerFromList(userId) {
 
 // Notification function (shared with game.js)
 function showNotification(message, type = 'info') {
-    if (typeof window.showNotification === 'function') {
+    // Check if the global function from game.js exists and is different from this one
+    if (typeof window.showNotification === 'function' && window.showNotification !== showNotification) {
         // Use the global notification function from game.js if available
         window.showNotification(message, type);
         return;
