@@ -3,10 +3,22 @@ Migration script to make email field optional in User model
 Run this with: python make_email_optional.py
 """
 
-from app import create_app
-from app.models import db
+import os
+import sys
 
-app = create_app()
+# Add current directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from flask import Flask
+from app.models import db
+from config import Config
+
+# Create minimal Flask app without SocketIO
+app = Flask(__name__,
+            static_folder='app/static',
+            template_folder='app/templates')
+app.config.from_object(Config)
+db.init_app(app)
 
 with app.app_context():
     try:
