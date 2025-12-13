@@ -11,25 +11,26 @@ def register():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
-        
+
         # Validate input
         if User.query.filter_by(username=username).first():
             flash('Username already exists')
             return redirect(url_for('auth.register'))
-        
-        if User.query.filter_by(email=email).first():
+
+        # Only check email uniqueness if an email was provided
+        if email and User.query.filter_by(email=email).first():
             flash('Email already registered')
             return redirect(url_for('auth.register'))
-        
-        # Create new user
-        user = User(username=username, email=email)
+
+        # Create new user (email can be None if not provided)
+        user = User(username=username, email=email if email else None)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
-        
+
         flash('Registration successful!')
         return redirect(url_for('auth.login'))
-    
+
     return render_template('register.html')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])

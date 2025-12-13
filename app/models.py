@@ -9,7 +9,7 @@ class User(UserMixin, db.Model):
     """User model for authentication"""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=False, nullable=True)
     password_hash = db.Column(db.String(200), nullable=False)
     elo_rating = db.Column(db.Integer, default=1200)  # Starting ELO rating
     games_played = db.Column(db.Integer, default=0)

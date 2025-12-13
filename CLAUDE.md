@@ -153,9 +153,9 @@ The application follows a **modular Flask architecture** with blueprints:
 ```python
 User:
   - id: Integer (Primary Key)
-  - username: String(80) (Unique)
-  - email: String(120) (Unique)
-  - password_hash: String(200)
+  - username: String(80) (Unique, Required)
+  - email: String(120) (Optional, Nullable)
+  - password_hash: String(200) (Required)
   - elo_rating: Integer (Default: 1200)
   - games_played: Integer (Default: 0)
   - games_won: Integer (Default: 0)
@@ -337,9 +337,13 @@ python run.py
 
 Access at: `http://localhost:5000`
 
-### Migrate ELO Fields (if needed)
+### Database Migrations (if needed)
 ```bash
+# Add ELO fields to existing database
 python add_elo_fields.py
+
+# Make email optional for existing database
+python make_email_optional.py
 ```
 
 ---
