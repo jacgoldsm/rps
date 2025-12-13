@@ -62,49 +62,56 @@ def run_email_migration(app, db):
 
         if 'postgresql' in database_uri:
             # PostgreSQL migration
-            with db.engine.connect() as conn:
+            # Use raw connection to avoid SQLAlchemy transaction issues
+            raw_conn = db.engine.raw_connection()
+            try:
+                cursor = raw_conn.cursor()
+
                 # Check if email is already nullable
-                result = conn.execute(db.text("""
+                cursor.execute("""
                     SELECT is_nullable
                     FROM information_schema.columns
                     WHERE table_name = 'user' AND column_name = 'email'
-                """))
+                """)
 
-                row = result.fetchone()
+                row = cursor.fetchone()
                 if row and row[0] == 'NO':
                     # Email is NOT NULL, need to migrate
                     app.logger.info("Running email migration: making email field optional")
 
-                    trans = conn.begin()
                     try:
                         # Remove NOT NULL constraint
-                        conn.execute(db.text('ALTER TABLE "user" ALTER COLUMN email DROP NOT NULL'))
+                        cursor.execute('ALTER TABLE "user" ALTER COLUMN email DROP NOT NULL')
 
                         # Try to remove UNIQUE constraint
                         try:
-                            result = conn.execute(db.text("""
+                            cursor.execute("""
                                 SELECT constraint_name
                                 FROM information_schema.table_constraints
                                 WHERE table_name = 'user'
                                 AND constraint_type = 'UNIQUE'
                                 AND constraint_name LIKE '%email%'
-                            """))
+                            """)
 
-                            constraint = result.fetchone()
+                            constraint = cursor.fetchone()
                             if constraint:
                                 constraint_name = constraint[0]
-                                conn.execute(db.text(f'ALTER TABLE "user" DROP CONSTRAINT {constraint_name}'))
+                                cursor.execute(f'ALTER TABLE "user" DROP CONSTRAINT {constraint_name}')
                                 app.logger.info(f"Removed UNIQUE constraint on email: {constraint_name}")
                         except Exception:
                             pass  # UNIQUE constraint might not exist
 
-                        trans.commit()
+                        raw_conn.commit()
                         app.logger.info("✓ Email field migration completed successfully")
                     except Exception as e:
-                        trans.rollback()
+                        raw_conn.rollback()
                         app.logger.error(f"Email migration failed: {e}")
                 elif row:
                     app.logger.info("Email field is already nullable - no migration needed")
+
+                cursor.close()
+            finally:
+                raw_conn.close()
 
         elif 'sqlite' in database_uri:
             # SQLite doesn't need migration - db.create_all() will use the new schema
