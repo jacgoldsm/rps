@@ -15,6 +15,14 @@ game_timers = {}  # {game_id: {'player1_timer': Timer, 'player2_timer': Timer}}
 # Turn timer duration in seconds
 TURN_TIMER_SECONDS = 30
 
+def get_lobby_users():
+    """Get list of user IDs currently in the lobby"""
+    lobby_user_ids = set()
+    for user_info in active_users.values():
+        if user_info.get('room') == 'lobby':
+            lobby_user_ids.add(user_info['user_id'])
+    return list(lobby_user_ids)
+
 def handle_timer_expire(game_id, player_id):
     """Handle when a player's turn timer expires"""
     game = Game.query.get(game_id)

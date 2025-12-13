@@ -9,7 +9,13 @@ game_bp = Blueprint('game', __name__)
 @login_required
 def lobby():
     """Game lobby - show online players"""
-    online_users = User.query.all()
+    # Import here to avoid circular import
+    from app.socket_handlers import get_lobby_users
+
+    # Only show users who are actually in the lobby (actively connected)
+    online_user_ids = get_lobby_users()
+    online_users = User.query.filter(User.id.in_(online_user_ids)).all() if online_user_ids else []
+
     return render_template('lobby.html', users=online_users)
 
 @game_bp.route('/join-random-game', methods=['POST'])
