@@ -37,22 +37,28 @@ document.addEventListener('DOMContentLoaded', () => {
     gameState.gameId = document.getElementById('game-id')?.value;
     gameState.currentUserId = parseInt(document.getElementById('current-user-id')?.value);
     gameState.currentUsername = document.getElementById('current-username')?.value;
-    
+
     // Initialize player info
     initializePlayerInfo();
-    
+
     if (gameState.gameId) {
         joinGame(gameState.gameId);
     }
-    
+
     // Add click handlers to choice buttons
     choiceButtons.forEach(btn => {
         btn.addEventListener('click', handleChoiceClick);
     });
-    
+
     // Play again button
     if (playAgainBtn) {
         playAgainBtn.addEventListener('click', handlePlayAgain);
+    }
+
+    // Lobby "Play Game" button (if on lobby page)
+    const joinRandomGameBtn = document.getElementById('join-random-game-btn');
+    if (joinRandomGameBtn) {
+        joinRandomGameBtn.addEventListener('click', joinRandomGame);
     }
 });
 
@@ -560,15 +566,6 @@ function playSound(type) {
 // Utility function to capitalize first letter
 function capitalizeFirst(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// Lobby functions (if on lobby page)
-if (window.location.pathname === '/lobby' || window.location.pathname === '/') {
-    const joinRandomGameBtn = document.getElementById('join-random-game-btn');
-
-    if (joinRandomGameBtn) {
-        joinRandomGameBtn.addEventListener('click', joinRandomGame);
-    }
 }
 
 // Join random game (matchmaking)
