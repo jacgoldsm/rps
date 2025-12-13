@@ -13,7 +13,10 @@ let gameState = {
     myChoice: null,
     opponentChoice: null,
     waitingForOpponent: false,
-    gameActive: false
+    gameActive: false,
+    timerSeconds: 30,
+    timerInterval: null,
+    timeRemaining: 30
 };
 
 // DOM elements
@@ -24,6 +27,9 @@ const opponentChoiceDisplay = document.getElementById('opponent-choice');
 const resultDisplay = document.getElementById('result');
 const playAgainBtn = document.getElementById('play-again-btn');
 const playerInfo = document.getElementById('player-info');
+const timerContainer = document.getElementById('timer-container');
+const timerDisplay = document.getElementById('timer-display');
+const timerBar = document.getElementById('timer-bar');
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', () => {
@@ -75,17 +81,20 @@ function handleChoiceClick(e) {
 // Send choice to server
 function makeChoice(choice) {
     gameState.myChoice = choice;
-    
+
     socket.emit('make_choice', {
         game_id: gameState.gameId,
         choice: choice
     });
-    
+
     // Update UI to show choice made
     displayMyChoice(choice);
     disableChoiceButtons();
     updateStatus('Waiting for opponent\'s choice...');
     gameState.waitingForOpponent = true;
+
+    // Stop timer since choice was made
+    stopTimer();
 }
 
 // Display player's choice
@@ -143,6 +152,82 @@ function updateStatus(message) {
     }
 }
 
+// Timer functions
+function startTimer(seconds) {
+    // Stop any existing timer
+    stopTimer();
+
+    gameState.timerSeconds = seconds;
+    gameState.timeRemaining = seconds;
+
+    // Show timer
+    if (timerContainer) {
+        timerContainer.style.display = 'block';
+    }
+
+    // Update display immediately
+    updateTimerDisplay();
+
+    // Start countdown
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+
+        updateTimerDisplay();
+
+        if (gameState.timeRemaining <= 0) {
+            stopTimer();
+            // Timer expired - server will handle the loss
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+
+    // Hide timer
+    if (timerContainer) {
+        timerContainer.style.display = 'none';
+    }
+}
+
+function updateTimerDisplay() {
+    if (timerDisplay) {
+        timerDisplay.textContent = gameState.timeRemaining;
+
+        // Add warning class when time is low
+        if (gameState.timeRemaining <= 10) {
+            timerDisplay.classList.add('timer-warning');
+        } else {
+            timerDisplay.classList.remove('timer-warning');
+        }
+
+        // Add critical class when time is very low
+        if (gameState.timeRemaining <= 5) {
+            timerDisplay.classList.add('timer-critical');
+        } else {
+            timerDisplay.classList.remove('timer-critical');
+        }
+    }
+
+    // Update progress bar
+    if (timerBar) {
+        const percentage = (gameState.timeRemaining / gameState.timerSeconds) * 100;
+        timerBar.style.width = percentage + '%';
+
+        // Change color based on time remaining
+        if (gameState.timeRemaining <= 5) {
+            timerBar.style.backgroundColor = '#dc3545'; // Red
+        } else if (gameState.timeRemaining <= 10) {
+            timerBar.style.backgroundColor = '#ffc107'; // Yellow
+        } else {
+            timerBar.style.backgroundColor = '#28a745'; // Green
+        }
+    }
+}
+
 // Socket event handlers
 
 // When a player joins the game
@@ -172,6 +257,11 @@ socket.on('player_joined', (data) => {
         gameState.gameActive = true;
         updateStatus('Game started! Make your choice!');
         enableChoiceButtons();
+
+        // Start timer if provided
+        if (data.timer_seconds && !gameState.myChoice) {
+            startTimer(data.timer_seconds);
+        }
     }
 });
 
@@ -197,29 +287,32 @@ socket.on('choice_made', (data) => {
 
 // When game result is determined
 socket.on('game_result', (data) => {
+    // Stop timer
+    stopTimer();
+
     // Display both choices
     if (data.player1_choice && data.player2_choice) {
         const myActualChoice = gameState.myChoice;
-        const opponentActualChoice = data.player1_choice === myActualChoice 
-            ? data.player2_choice 
+        const opponentActualChoice = data.player1_choice === myActualChoice
+            ? data.player2_choice
             : data.player1_choice;
-        
+
         gameState.opponentChoice = opponentActualChoice;
         displayOpponentChoice(opponentActualChoice);
     }
-    
+
     // Determine result message and ELO change
     let resultMessage = '';
     let resultClass = '';
     let eloChange = 0;
-    
+
     // Determine which player's ELO change to show
     if (data.player1_choice === gameState.myChoice) {
         eloChange = data.player1_elo_change;
     } else {
         eloChange = data.player2_elo_change;
     }
-    
+
     if (data.winner_id === null) {
         resultMessage = "It's a tie! 🤝";
         resultClass = 'tie';
@@ -232,12 +325,12 @@ socket.on('game_result', (data) => {
         resultClass = 'lose';
         playSound('lose');
     }
-    
+
     // Add ELO change to result message
-    const eloChangeText = eloChange >= 0 
-        ? `<span class="elo-gain">+${eloChange} ELO</span>` 
+    const eloChangeText = eloChange >= 0
+        ? `<span class="elo-gain">+${eloChange} ELO</span>`
         : `<span class="elo-loss">${eloChange} ELO</span>`;
-    
+
     // Display result
     if (resultDisplay) {
         resultDisplay.innerHTML = `
@@ -248,14 +341,72 @@ socket.on('game_result', (data) => {
         `;
         resultDisplay.classList.add('show');
     }
-    
+
     updateStatus('Game finished!');
-    
+
     // Show play again button
     if (playAgainBtn) {
         playAgainBtn.style.display = 'block';
     }
-    
+
+    gameState.gameActive = false;
+});
+
+// When game ends due to timeout
+socket.on('game_timeout', (data) => {
+    // Stop timer
+    stopTimer();
+
+    console.log('Game timeout:', data);
+
+    // Determine result message and ELO change
+    let resultMessage = '';
+    let resultClass = '';
+    let eloChange = 0;
+
+    // Determine which player's ELO change to show
+    if (gameState.currentUserId === data.winner_id) {
+        eloChange = data.player1_elo_change;
+    } else {
+        eloChange = data.player2_elo_change;
+    }
+
+    if (data.winner_id === gameState.currentUserId) {
+        resultMessage = `You win! 🎉<br><small>${data.loser_username} ran out of time!</small>`;
+        resultClass = 'win';
+        playSound('win');
+    } else {
+        resultMessage = `Time's up! You lose! ⏰<br><small>You didn't make a choice in time.</small>`;
+        resultClass = 'lose timeout';
+        playSound('lose');
+    }
+
+    // Add ELO change to result message
+    const eloChangeText = eloChange >= 0
+        ? `<span class="elo-gain">+${eloChange} ELO</span>`
+        : `<span class="elo-loss">${eloChange} ELO</span>`;
+
+    // Display result
+    if (resultDisplay) {
+        resultDisplay.innerHTML = `
+            <div class="result-message ${resultClass}">
+                ${resultMessage}
+                <div class="elo-change">${eloChangeText}</div>
+            </div>
+        `;
+        resultDisplay.classList.add('show');
+    }
+
+    updateStatus('Game finished!');
+
+    // Disable choice buttons
+    disableChoiceButtons();
+
+    // Show play again button
+    if (playAgainBtn) {
+        playAgainBtn.style.display = 'block';
+    }
+
     gameState.gameActive = false;
 });
 
@@ -270,6 +421,46 @@ socket.on('disconnect', () => {
     console.log('Disconnected from server');
     gameState.gameActive = false;
     updateStatus('Disconnected from server. Please refresh the page.');
+});
+
+// Handle new game created (play again)
+socket.on('new_game_created', (data) => {
+    console.log('New game created:', data);
+    // Redirect to the new game
+    window.location.href = `/game/${data.game_id}`;
+});
+
+// Handle opponent disconnected
+socket.on('opponent_disconnected', (data) => {
+    console.log('Opponent disconnected:', data.message);
+
+    // Update UI to show opponent left
+    updateStatus('Opponent left the game');
+    showNotification(data.message, 'warning');
+
+    // Disable game controls
+    disableChoiceButtons();
+    gameState.gameActive = false;
+
+    // Show result display
+    if (resultDisplay) {
+        resultDisplay.innerHTML = `
+            <div class="result-message disconnected">
+                <div class="disconnect-icon">🚪</div>
+                <div class="disconnect-text">
+                    <h3>Game Cancelled</h3>
+                    <p>Your opponent has left the game.</p>
+                    <p class="no-score-change">No rating changes applied.</p>
+                </div>
+            </div>
+        `;
+        resultDisplay.classList.add('show');
+    }
+
+    // Hide play again button (can't rematch with disconnected player)
+    if (playAgainBtn) {
+        playAgainBtn.style.display = 'none';
+    }
 });
 
 // Update player info display
@@ -303,31 +494,19 @@ function initializePlayerInfo() {
 
 // Handle play again button
 function handlePlayAgain() {
-    // Reset game state
-    gameState.myChoice = null;
-    gameState.opponentChoice = null;
-    gameState.waitingForOpponent = false;
-    
-    // Clear displays
-    myChoiceDisplay.innerHTML = '';
-    opponentChoiceDisplay.innerHTML = '';
-    if (resultDisplay) {
-        resultDisplay.innerHTML = '';
-        resultDisplay.classList.remove('show');
-    }
-    
-    // Hide play again button
+    // Emit play again event to server
+    socket.emit('play_again', {
+        game_id: gameState.gameId
+    });
+
+    // Show loading message
+    updateStatus('Starting new game with same players...');
+    showNotification('Creating rematch...', 'info');
+
+    // Disable play again button while waiting
     if (playAgainBtn) {
-        playAgainBtn.style.display = 'none';
-    }
-    
-    // Enable buttons if game is active
-    if (gameState.gameActive) {
-        enableChoiceButtons();
-        updateStatus('Make your choice!');
-    } else {
-        // Redirect to lobby to find new game
-        window.location.href = '/lobby';
+        playAgainBtn.disabled = true;
+        playAgainBtn.textContent = 'Creating rematch...';
     }
 }
 
@@ -337,15 +516,15 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Trigger animation
     setTimeout(() => {
         notification.classList.add('show');
     }, 10);
-    
+
     // Remove after delay
     setTimeout(() => {
         notification.classList.remove('show');
@@ -354,6 +533,9 @@ function showNotification(message, type = 'info') {
         }, 300);
     }, 3000);
 }
+
+// Make showNotification globally available
+window.showNotification = showNotification;
 
 // Play sound effects (optional)
 function playSound(type) {

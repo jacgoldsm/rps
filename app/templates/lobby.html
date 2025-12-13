@@ -22,7 +22,7 @@
                 {% if users %}
                     {% for user in users %}
                         {% if user.id != current_user.id %}
-                            <div class="player-item">
+                            <div class="player-item" data-user-id="{{ user.id }}">
                                 <span class="player-avatar">👤</span>
                                 <span class="player-name">{{ user.username }}</span>
                                 <span class="player-status">●</span>
@@ -42,4 +42,5 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+<script src="{{ url_for('static', filename='js/lobby.js') }}"></script>
 {% endblock %}

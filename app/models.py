@@ -31,9 +31,10 @@ class User(UserMixin, db.Model):
     @property
     def win_rate(self):
         """Calculate win rate percentage"""
-        if self.games_played == 0:
+        total_decided_games = self.games_won + self.games_lost
+        if total_decided_games == 0:
             return 0.0
-        return round((self.games_won / self.games_played) * 100, 1)
+        return round((self.games_won / total_decided_games) * 100, 1)
 
 
 class Game(db.Model):
@@ -44,7 +45,9 @@ class Game(db.Model):
     player1_choice = db.Column(db.String(10))  # rock, paper, scissors
     player2_choice = db.Column(db.String(10))
     winner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    status = db.Column(db.String(20), default='waiting')  # waiting, active, completed
+    status = db.Column(db.String(20), default='waiting')  # waiting, active, completed, cancelled
     is_quickplay = db.Column(db.Boolean, default=False)  # True if random matchmaking game
+    player1_elo_change = db.Column(db.Integer, default=0)  # ELO change for player1
+    player2_elo_change = db.Column(db.Integer, default=0)  # ELO change for player2
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)
