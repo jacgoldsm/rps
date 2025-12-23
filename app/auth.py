@@ -11,6 +11,22 @@ def register():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        # Validate password confirmation
+        if password != confirm_password:
+            flash('Passwords do not match')
+            return redirect(url_for('auth.register'))
+
+        # Validate username length
+        if not username or len(username) < 3 or len(username) > 20:
+            flash('Username must be between 3 and 20 characters')
+            return redirect(url_for('auth.register'))
+
+        # Validate password length
+        if not password or len(password) < 6:
+            flash('Password must be at least 6 characters')
+            return redirect(url_for('auth.register'))
 
         # Validate input
         if User.query.filter_by(username=username).first():

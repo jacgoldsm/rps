@@ -69,14 +69,22 @@ def handle_timer_expire(game_id, player_id):
     winner = User.query.get(winner_id)
     loser = User.query.get(loser_id)
 
+    # Determine winner and loser ELO changes
+    if winner_id == game.player1_id:
+        winner_elo_change = game.player1_elo_change
+        loser_elo_change = game.player2_elo_change
+    else:
+        winner_elo_change = game.player2_elo_change
+        loser_elo_change = game.player1_elo_change
+
     # Notify both players
     socketio.emit('game_timeout', {
         'winner_id': winner_id,
         'loser_id': loser_id,
         'winner_username': winner.username if winner else 'Unknown',
         'loser_username': loser.username if loser else 'Unknown',
-        'player1_elo_change': game.player1_elo_change,
-        'player2_elo_change': game.player2_elo_change
+        'winner_elo_change': winner_elo_change,
+        'loser_elo_change': loser_elo_change
     }, room=f'game_{game_id}')
 
 def start_turn_timer(game_id, player_id):

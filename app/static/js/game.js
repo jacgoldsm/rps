@@ -427,11 +427,11 @@ socket.on('game_timeout', (data) => {
     let resultClass = '';
     let eloChange = 0;
 
-    // Determine which player's ELO change to show
-    if (gameState.currentUserId === data.winner_id) {
-        eloChange = data.player1_elo_change;
+    // Determine which player's ELO change to show based on winner/loser
+    if (data.winner_id === gameState.currentUserId) {
+        eloChange = data.winner_elo_change;
     } else {
-        eloChange = data.player2_elo_change;
+        eloChange = data.loser_elo_change;
     }
 
     if (data.winner_id === gameState.currentUserId) {

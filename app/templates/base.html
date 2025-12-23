@@ -18,6 +18,7 @@
                     <a href="{{ url_for('game.leaderboard') }}" class="nav-link">Leaderboard</a>
                     <a href="{{ url_for('auth.logout') }}" class="nav-link">Logout</a>
                 {% else %}
+                    <a href="{{ url_for('game.leaderboard') }}" class="nav-link">Leaderboard</a>
                     <a href="{{ url_for('auth.login') }}" class="nav-link">Login</a>
                     <a href="{{ url_for('auth.register') }}" class="nav-link">Register</a>
                 {% endif %}
@@ -43,7 +44,7 @@
     </main>
 
     <footer class="footer">
-        <p></p>
+        <p>Rock Paper Scissors - A real-time multiplayer game</p>
     </footer>
 
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
