@@ -293,9 +293,6 @@ def handle_play_again(data):
     if current_user.id not in [old_game.player1_id, old_game.player2_id]:
         return
 
-    # Leave the old game room
-    leave_room(f'game_{old_game_id}')
-
     # Create a new game with the same players
     new_game = Game(
         player1_id=old_game.player1_id,
@@ -310,12 +307,15 @@ def handle_play_again(data):
     player1 = User.query.get(old_game.player1_id)
     player2 = User.query.get(old_game.player2_id)
 
-    # Notify both players to join the new game
+    # Notify both players to join the new game BEFORE leaving the room
     emit('new_game_created', {
         'game_id': new_game.id,
         'player1_username': player1.username,
         'player2_username': player2.username
     }, room=f'game_{old_game_id}')
+
+    # Now leave the old game room
+    leave_room(f'game_{old_game_id}')
 
 @socketio.on('connect')
 def handle_connect():
