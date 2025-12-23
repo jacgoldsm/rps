@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
     gameState.currentUserId = parseInt(document.getElementById('current-user-id')?.value);
     gameState.currentUsername = document.getElementById('current-username')?.value;
 
+    // Reset game state for new game (important for rematch)
+    resetGameState();
+
     // Initialize player info
     initializePlayerInfo();
 
@@ -68,6 +71,53 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('join-random-game-btn not found on this page');
     }
 });
+
+// Reset game state for a new game (important for rematch)
+function resetGameState() {
+    // Clear previous game choices
+    gameState.myChoice = null;
+    gameState.opponentChoice = null;
+    gameState.waitingForOpponent = false;
+    gameState.gameActive = false;
+    gameState.opponentUsername = null;
+
+    // Stop any running timer
+    stopTimer();
+
+    // Reset UI elements
+    if (myChoiceDisplay) {
+        myChoiceDisplay.innerHTML = `
+            <div class="choice-display">
+                <div class="choice-emoji">❓</div>
+                <div class="choice-label">Your choice</div>
+            </div>
+        `;
+    }
+
+    if (opponentChoiceDisplay) {
+        opponentChoiceDisplay.innerHTML = `
+            <div class="choice-display">
+                <div class="choice-emoji">❓</div>
+                <div class="choice-label">Opponent's choice</div>
+            </div>
+        `;
+    }
+
+    if (resultDisplay) {
+        resultDisplay.innerHTML = '';
+        resultDisplay.classList.remove('show');
+    }
+
+    // Hide play again button
+    if (playAgainBtn) {
+        playAgainBtn.style.display = 'none';
+        playAgainBtn.disabled = false;
+        playAgainBtn.textContent = 'Play Again';
+    }
+
+    // Enable choice buttons
+    enableChoiceButtons();
+}
 
 // Join a game room
 function joinGame(gameId) {
