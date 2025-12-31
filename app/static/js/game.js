@@ -25,7 +25,6 @@ const statusMessage = document.getElementById('status-message');
 const myChoiceDisplay = document.getElementById('my-choice');
 const opponentChoiceDisplay = document.getElementById('opponent-choice');
 const resultDisplay = document.getElementById('result');
-const playAgainBtn = document.getElementById('play-again-btn');
 const playerInfo = document.getElementById('player-info');
 const timerContainer = document.getElementById('timer-container');
 const timerDisplay = document.getElementById('timer-display');
@@ -52,11 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     choiceButtons.forEach(btn => {
         btn.addEventListener('click', handleChoiceClick);
     });
-
-    // Play again button
-    if (playAgainBtn) {
-        playAgainBtn.addEventListener('click', handlePlayAgain);
-    }
 
     // Lobby "Play Game" button (if on lobby page)
     const joinRandomGameBtn = document.getElementById('join-random-game-btn');
@@ -106,13 +100,6 @@ function resetGameState() {
     if (resultDisplay) {
         resultDisplay.innerHTML = '';
         resultDisplay.classList.remove('show');
-    }
-
-    // Hide play again button
-    if (playAgainBtn) {
-        playAgainBtn.style.display = 'none';
-        playAgainBtn.disabled = false;
-        playAgainBtn.textContent = 'Play Again';
     }
 
     // Enable choice buttons
@@ -394,25 +381,34 @@ socket.on('game_result', (data) => {
         ? `<span class="elo-gain">+${eloChange} ELO</span>`
         : `<span class="elo-loss">${eloChange} ELO</span>`;
 
-    // Display result
+    // Display result with countdown to next game
     if (resultDisplay) {
         resultDisplay.innerHTML = `
             <div class="result-message ${resultClass}">
                 ${resultMessage}
                 <div class="elo-change">${eloChangeText}</div>
+                <div class="next-game-countdown">Next game in <span id="countdown">3</span>...</div>
             </div>
         `;
         resultDisplay.classList.add('show');
     }
 
     updateStatus('Game finished!');
-
-    // Show play again button
-    if (playAgainBtn) {
-        playAgainBtn.style.display = 'block';
-    }
-
     gameState.gameActive = false;
+
+    // Auto-redirect to new game after countdown
+    if (data.new_game_id) {
+        let countdown = 3;
+        const countdownEl = document.getElementById('countdown');
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdownEl) countdownEl.textContent = countdown;
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = `/game/${data.new_game_id}`;
+            }
+        }, 1000);
+    }
 });
 
 // When game ends due to timeout
@@ -449,28 +445,35 @@ socket.on('game_timeout', (data) => {
         ? `<span class="elo-gain">+${eloChange} ELO</span>`
         : `<span class="elo-loss">${eloChange} ELO</span>`;
 
-    // Display result
+    // Display result with countdown to next game
     if (resultDisplay) {
         resultDisplay.innerHTML = `
             <div class="result-message ${resultClass}">
                 ${resultMessage}
                 <div class="elo-change">${eloChangeText}</div>
+                <div class="next-game-countdown">Next game in <span id="countdown-timeout">3</span>...</div>
             </div>
         `;
         resultDisplay.classList.add('show');
     }
 
     updateStatus('Game finished!');
-
-    // Disable choice buttons
     disableChoiceButtons();
-
-    // Show play again button
-    if (playAgainBtn) {
-        playAgainBtn.style.display = 'block';
-    }
-
     gameState.gameActive = false;
+
+    // Auto-redirect to new game after countdown
+    if (data.new_game_id) {
+        let countdown = 3;
+        const countdownEl = document.getElementById('countdown-timeout');
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdownEl) countdownEl.textContent = countdown;
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = `/game/${data.new_game_id}`;
+            }
+        }, 1000);
+    }
 });
 
 // Handle connection errors
@@ -484,13 +487,6 @@ socket.on('disconnect', () => {
     console.log('Disconnected from server');
     gameState.gameActive = false;
     updateStatus('Disconnected from server. Please refresh the page.');
-});
-
-// Handle new game created (play again)
-socket.on('new_game_created', (data) => {
-    console.log('New game created:', data);
-    // Redirect to the new game
-    window.location.href = `/game/${data.game_id}`;
 });
 
 // Handle opponent disconnected
@@ -518,11 +514,6 @@ socket.on('opponent_disconnected', (data) => {
             </div>
         `;
         resultDisplay.classList.add('show');
-    }
-
-    // Hide play again button (can't rematch with disconnected player)
-    if (playAgainBtn) {
-        playAgainBtn.style.display = 'none';
     }
 });
 
@@ -552,24 +543,6 @@ function initializePlayerInfo() {
             gameState.opponentUsername = match[1].trim();
             gameState.gameActive = true;
         }
-    }
-}
-
-// Handle play again button
-function handlePlayAgain() {
-    // Emit play again event to server
-    socket.emit('play_again', {
-        game_id: gameState.gameId
-    });
-
-    // Show loading message
-    updateStatus('Starting new game with same players...');
-    showNotification('Creating rematch...', 'info');
-
-    // Disable play again button while waiting
-    if (playAgainBtn) {
-        playAgainBtn.disabled = true;
-        playAgainBtn.textContent = 'Creating rematch...';
     }
 }
 

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:web-production-c08ea.up.railway.app)",
+      "Bash(cd:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(railway:*)",
+      "Bash(python clear_db.py:*)"
+    ]
+  }
+}

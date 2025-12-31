@@ -77,14 +77,25 @@ def handle_timer_expire(game_id, player_id):
         winner_elo_change = game.player2_elo_change
         loser_elo_change = game.player1_elo_change
 
-    # Notify both players
+    # Create new game for automatic rematch
+    new_game = Game(
+        player1_id=game.player1_id,
+        player2_id=game.player2_id,
+        status='active',
+        is_quickplay=game.is_quickplay
+    )
+    db.session.add(new_game)
+    db.session.commit()
+
+    # Notify both players with new game ID
     socketio.emit('game_timeout', {
         'winner_id': winner_id,
         'loser_id': loser_id,
         'winner_username': winner.username if winner else 'Unknown',
         'loser_username': loser.username if loser else 'Unknown',
         'winner_elo_change': winner_elo_change,
-        'loser_elo_change': loser_elo_change
+        'loser_elo_change': loser_elo_change,
+        'new_game_id': new_game.id
     }, room=f'game_{game_id}')
 
 def start_turn_timer(game_id, player_id):
@@ -199,13 +210,24 @@ def handle_choice(data):
         # Cancel all timers for this game
         cancel_game_timers(game_id)
 
-        # Broadcast result to both players
+        # Create new game for automatic rematch
+        new_game = Game(
+            player1_id=game.player1_id,
+            player2_id=game.player2_id,
+            status='active',
+            is_quickplay=game.is_quickplay
+        )
+        db.session.add(new_game)
+        db.session.commit()
+
+        # Broadcast result to both players with new game ID
         emit('game_result', {
             'player1_choice': game.player1_choice,
             'player2_choice': game.player2_choice,
             'winner_id': winner_id,
             'player1_elo_change': game.player1_elo_change,
-            'player2_elo_change': game.player2_elo_change
+            'player2_elo_change': game.player2_elo_change,
+            'new_game_id': new_game.id
         }, room=f'game_{game_id}')
     else:
         db.session.commit()
@@ -279,43 +301,6 @@ def update_elo_ratings(game):
 
     db.session.add(player1)
     db.session.add(player2)
-
-@socketio.on('play_again')
-def handle_play_again(data):
-    """Handle play again request - creates new game with same players"""
-    old_game_id = data['game_id']
-    old_game = Game.query.get(old_game_id)
-
-    if not old_game:
-        return
-
-    # Verify the requesting user was part of the previous game
-    if current_user.id not in [old_game.player1_id, old_game.player2_id]:
-        return
-
-    # Create a new game with the same players
-    new_game = Game(
-        player1_id=old_game.player1_id,
-        player2_id=old_game.player2_id,
-        status='active',
-        is_quickplay=old_game.is_quickplay
-    )
-    db.session.add(new_game)
-    db.session.commit()
-
-    # Get player usernames
-    player1 = User.query.get(old_game.player1_id)
-    player2 = User.query.get(old_game.player2_id)
-
-    # Notify both players to join the new game BEFORE leaving the room
-    emit('new_game_created', {
-        'game_id': new_game.id,
-        'player1_username': player1.username,
-        'player2_username': player2.username
-    }, room=f'game_{old_game_id}')
-
-    # Now leave the old game room
-    leave_room(f'game_{old_game_id}')
 
 @socketio.on('connect')
 def handle_connect():

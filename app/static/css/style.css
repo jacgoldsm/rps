@@ -734,6 +734,13 @@ body {
     font-weight: 900;
 }
 
+.next-game-countdown {
+    margin-top: 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
 /* Game Actions */
 .game-actions {
     display: flex;
